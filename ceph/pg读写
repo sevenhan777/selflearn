@@ -286,3 +286,139 @@ osd.3 缺少两次写操作。
 OSD 之间 epoch 不一致（对应不同的 OSDMap 上下文）；
 
 所以必须综合多种因素判断，不是“最大版本号优先”。
+
+》》》》》》》》》》》》》》》》》》》》》》》》》》》》》info  log authoritative history
+三者的基本含义：
+1. log（操作日志）
+每个 OSD 对它所持有 PG 的写操作会记录成一条日志（如：对象写入、删除、更新等）；
+
+记录的是最近一段时间内的变更（为节省内存，旧的 log 可能已被丢弃）；
+
+用于追踪对象的变更顺序，支持回滚/重放。
+
+2. info（PG 状态信息）
+是 PG 的元信息，包括：
+
+last_update: 最后一个写操作的版本号；
+
+last_complete: 最后确认一致的版本号；
+
+log_tail: 被截断前的日志版本（日志从哪里开始）；
+
+missing: 当前缺失的对象；
+
+omap_digest、size_stats 等。
+
+info 是 PG 状态的“快照”。
+
+3. authoritative history（权威历史）
+当 PG 所在 OSD 重启后，原有日志可能丢失或不完整；
+
+为避免数据不一致，Ceph 设计了 authoritative history，它是一个更长期稳定的版本历史记录摘要；
+
+记录的是 PG 的历史 lineage（版本演化路径），用于判断哪些 OSD 保持了可用的历史版本；
+
+一种类似“代际信息”的机制。
+
+🧠 协同工作流程（以 PG Peering 为例）：
+➤ 1. 启动 Peering
+PG 所有候选副本（up set 中的 OSD）开始上报 info + log + authoritative history。
+
+➤ 2. Primary（主 OSD）收集数据
+收集每个 OSD 提交的：
+
+info.last_update：哪个副本数据最“新”；
+
+log_tail：日志从哪里开始；
+
+missing set：缺了哪些对象；
+
+authoritative history：是否能覆盖或匹配其他 OSD 的版本演化。
+
+➤ 3. 判断谁是“可信副本”
+Primary 会比对：
+
+谁的 log 最完整；
+
+哪些 OSD 的 log 范围相互重叠；
+
+是否有人丢失关键历史段（通过 authoritative history 检查）；
+
+谁拥有 last_complete 范围一致的对象。
+
+➤ 4. 选出 acting set，并构建 recovery plan
+Primary 会选出 一组 log 连贯、info 完整、authoritative history 不缺失 的副本；
+
+这组副本被认为是“可信副本”；
+
+然后根据这些副本同步其它落后的 OSD。
+
+📌 举个例子：
+假设 PG 100 的 up set 为 [osd.1, osd.2, osd.3]：
+
+OSD	log_tail	last_update	authoritative history
+osd.1	v.80	v.100	从 v.0 → v.100
+osd.2	v.90	v.100	从 v.10 → v.100
+osd.3	v.95	v.98	丢失 v.80-v.94
+
+osd.3 丢了早期历史，不能被信任；
+
+osd.1 和 osd.2 虽然 log 起点不同，但 authoritative history 都包含完整链路；
+→ 所以 osd.1 和 osd.2 会进入 acting set，osd.3 被标记为需要恢复。
+
+authoritative history:
+authoritative history 包含哪些信息？
+它是 PG 的版本 lineage 记录，核心数据包括：
+
+字段	含义
+epoch	PG 所在 OSD 报告的某个状态快照版本
+past_intervals	过去一段时间内，PG 所处的 acting set 情况（有哪些 OSD、epoch 范围）
+interval boundaries	每次 acting set 变动时的分段位置
+purged_snap_ids	被删除的快照 ID（用于快照一致性判断）
+history.same_interval_since	从哪个 epoch 开始 acting set 没变
+history.last_epoch_started	最近一次 PG 活动的 epoch
+
+这个信息可用来判断：“这个 OSD 是不是在多个 epoch 中都一直在线并参与数据写入”。
+
+📈 它是怎么工作的？
+来看下 在 peering 过程中的作用：
+
+OSD 启动/peering 时汇报状态
+
+每个参与 peering 的 OSD 会上传自己的 info、log 和 authoritative history。
+
+Primary OSD 收集所有副本的 history
+
+它会将不同 OSD 的 past_intervals（历史 acting set）进行比较；
+
+查看是否有“公共的历史段”，即多个 OSD 在某段时间都属于同一个 acting set；
+
+如果有公共 history + 至少一个 OSD 的 log 是从那段开始的，那么这个 OSD 可以被信任。
+
+弥补 log 丢失的 gap
+
+如果某个 OSD 的 log 丢了，但它有完整的 authoritative history；
+
+并且有其他副本的 log 能覆盖它缺失的时间段；
+
+就可以认为这个 OSD 在那个时间段是“在场的”，其数据可以被认为是接近完整的。
+
+用于重建 PG 一致性状态
+
+Primary 会根据这些 history 来确定哪些副本是可信的；
+
+然后基于这些可信副本生成新的 acting set，准备 recovery。
+
+🧠 举个例子帮助理解：
+假设 PG 20 原 acting set 是 [osd.1, osd.2, osd.3]，其中：
+
+osd.1 重启了，log 丢了；
+
+但它提交了 authoritative history，说明：
+
+“我从 epoch 100 到 150 一直在 acting set 里，和 osd.2、osd.3 是一起的”。
+
+而 osd.2 的 log 恰好从 epoch 100 开始完整，且和 osd.1 的 history 匹配。
+
+那么 Primary OSD 就可以信任 osd.1 是数据完整的，可以作为 recovery 来源。
+
