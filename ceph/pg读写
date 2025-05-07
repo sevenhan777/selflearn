@@ -422,3 +422,55 @@ osd.1 重启了，log 丢了；
 
 那么 Primary OSD 就可以信任 osd.1 是数据完整的，可以作为 recovery 来源。
 
+
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>状态转移《《《《《《《《《《《《《《《《《《《《《《《《《《《《《《《《《
+pg 创建
+1. crush 计算需要哪些osd 后 锁定osd map 防止osd 更新
+2. 通过primary osd 创建pg
+3. primary 创建完成后， 随后通过 peering replica osd 自动创建pg
+
+创建过程中 需要检查一下内容：
+epoch 保证osd map版本一致
+primary 遇到网络波动，peimary 会发生改变 不一致会导致在多个osd 创建pg
+acting set 与 up set 是否一致
+
+》》》》》》》》》》》》》》》》》》》》》》》》》peering>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+statechart 状态机
+有子状态情况下的状态定义
+struct Start;
+struct Started : boost::statechart::state< Started, RecoveryMachine, Start >, NamedState {
+};
+状态Started也是状态机RecoveryMachine的一个状态，模板参数中多了一个参数Start，它是状态Started的默认初始子状态，其定义如下：
+
+struct Start : boost::statechart::state< Start, Started >, NamedState {
+};
+这里定义的Start是状态Started的子状态。第一个模板参数是自己的名字，第二个模板参数是该子状态所属父状态的名字。
+综上所述，一个状态，要么属于一个状态机，要么属于一个状态，成为该状态的子状态。其定义的模板参数是自己，第二个参数是拥有者，第三个参数是它的起始子状态。
+=====================================
+peering 过程介绍：
+https://ivanzz1001.github.io/records/post/ceph/2019/02/01/ceph-src-code-part10_2
+ 总结
+情况	含义	处理方式
+有重叠	可以对比日志，确定 missing 数据	使用 recovery
+无重叠	无法判断差异来源	使用 backfill
+日志多了（divergent）	本地有未确认的写入	删除多余日志
+日志少了	本地丢失一部分写入记录	添加权威日志补全，标记 missing
+
+>>>>>>>>>>>>>>>>>>>>>>>>>什么时候peering
+当系统初始化时，OSD重新启动导致PG重新加载，或者PG新创建时，PG会发起一次Peering的过程；
+当有OSD失效，OSD的增加或者删除等导致PG的acting set发生了变化，该PG就会重新发起一次Peering过程；
+peering 流程：
+步骤1 GetInfo: PG的主OSD通过发送消息获取所有从OSD的pg_info信息；
+步骤2 GetLog: 根据各个副本获取的pg_info信息的比较，选择一个拥有权威日志的OSD(auth_log_shard)。如果主OSD不是拥有权威日志的OSD，就从该OSD上拉取权威日志。主OSD完成拉取权威日志后也就拥有了权威日志。
+步骤3 GetMissing: 主OSD拉取其他从OSD的PG日志（或者部分获取，或者全部获取FULL_LOG)。通过与本地权威日志的对比，来计算该OSD上缺失的object信息，作为后续Recovery操作过程的依据。
+
+最后通过Active操作激活主OSD，并发送notify通知消息，激活相应的从OSD
+>>>>>>>>>>>>>>>>>>>>>>recovery backfill>>>>>>>>>>>>>>>>>>>>>>>>>>
+在 Ceph 中，PG 的 Recovery 和 Backfill 都是用于 数据修复和同步 的机制，但它们适用于不同的场景、方式和效率。我们来详细比较两者：
+
+✅ 一句话区别：
+类型	简要说明
+Recovery	修复原本属于 acting set 的 OSD 上缺失的数据。
+Backfill	修复新加入 acting set 的 OSD，让它拥有完整 PG 副本。
+
+
