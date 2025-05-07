@@ -139,3 +139,16 @@ pg 读写流程
 对应的 op 执行完成，此时由 Primary 向客户端回应 写入完成
 
 》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》
+一些术语：
+Acting Set 是什么？
+当一个 PG（比如 pg 1.23）被映射到若干个 OSD 上时（根据 CRUSH 规则和 OSDMap），Ceph 会选出一组 OSD 来“实际执行”该 PG 的副本管理和 I/O 操作，这组 OSD 就是 Acting Set。
+
+它包含：
+Primary OSD（主副本，接收客户端请求）
+Replica OSD(s)（从副本，同步主副本的写入）
+
+Acting Set ≠ Up Set ≠ Ideal Set
+名称	意义
+Up Set	当前“在线且可用”的 OSD 列表
+Acting Set	实际承担 PG 工作的 OSD 列表（由 Ceph 决定）
+CRUSH Map Set	理想情况下 PG 应该落在哪些 OSD（根据 crush 规则）
