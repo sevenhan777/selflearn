@@ -1,0 +1,43 @@
+image 其实就是一个lun 可以被客户端当成磁盘来使用
+
+一个image， 在ceph 中要被切割成一个个对象， 对象有两种 元数据对象 和数据对象
+
+元数据对象：》》》》》》》》》》》》》》》》
+image 元数据对象，负责记录image 本身特性  
+ 1. rbd_id.<name>             iamge name 与 id 的映射
+ 2. rbd_head.<id>             image 支持的功能特性
+ 3. rbd_object_map.<id>       thin 配置下， 记录一个 image 实际使用了哪些 data object 一个位图
+
+管理元数据对象
+ 1. rbd_directory   记录一个存储池中的 image 列表
+ 2. rbd_childern    记录克隆关系， 是父image 到clone image 的单项映射
+
+数据对象》》》》》》》》》》》》》》》》》》》》》》》
+rbd_header.<id> 中记录了 object_profix, image 的 data object 名字是 object_profix+序号
+对象实际大小 = offset,offset+lenth 未必和 header 中order 字段规定的大小一致
+
+数据对象条带化：
+类似于raid 0,提高并发写入举个例子
+默认（striping v1）：
+image size = 64MB，object size = 4MB。
+
+则对象分布为：obj_0, obj_1, obj_2, ..., obj_15
+
+逻辑地址 04MB → obj_0，4MB8MB → obj_1，以此类推。
+
+启用 striping v2，假设：
+stripe_unit = 1MB
+stripe_count = 4
+object_size = 4MB
+数据写入方式如下：
+第 0~1MB → obj_0 的前 1MB
+第 1~2MB → obj_1 的前 1MB
+第 2~3MB → obj_2 的前 1MB
+第 3~4MB → obj_3 的前 1MB
+第 4~5MB → obj_0 的第 2MB
+如此反复，实现跨对象交错写入，提高并发。
+
+》》》》》rbd 功能特性
+
+>>>>>>快照》》》》》》》》》》》》
+
