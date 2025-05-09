@@ -41,3 +41,10 @@ R(r,i) = max{ R(r-1,i) + 1/ri, Current time} // R(r,i) 表示到达VMi的第r个
 
 这样可以让后面的请求更有可能在 Reservation 阶段成功调度，避免过度落入 Weight 阶段，保持 QoS 的平稳性。
 
+当客户端的一个请求到来时， 会被打上 r w l 三个标签， r,l 是绝对时间， w 是相对时间
+r < 当前时间会在reservation 阶段被调用， 如果没有r 满足r <当前时间的条件， 怎判断l < 当前时间， 如果是这样 则
+根据w 先后调动， 如果l > 当前时间 则拒绝请求。
+https://zhuanlan.zhihu.com/p/38405926
+》》》》》》》》》》》》》》》》》  dmclock >>>>>>>>>>>
+https://juejin.cn/post/6844904016359456776
+
