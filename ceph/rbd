@@ -40,4 +40,30 @@ object_size = 4MB
 》》》》》rbd 功能特性
 
 >>>>>>快照》》》》》》》》》》》》
+>>rados 对象快照
+对原始对象 创建一个快照后， 第一次写入会出发 COW, COW 会完整的clone出一个clone 对象，之后快照就指向了这个clone 对象
+所以后续对原始对象写入数据， 均不会触发COW，不过需要一个 overlap 字段记录clone对象于原始对象重叠的部分：
+clone_overlap[snap1][0~3] 意思基于 snap1的克隆对象和原始对象在0-3M 有重叠，说明原始对象在打完快找后 对3-4M的区间执行了覆盖写操作
+>>RBD 快照
+rbd 快照即image 快照，在创建时依赖对象快照，image只会更新 rbd_header.<id> 中 snap_seq和 snap_id的信息，当有数据写时，直接触发 rados对象
+的COW过程
+
+
+》》》》》克隆》》》》》》
+克隆是在快照基础上实现的可写快照，要想创建 clone 要先创建一个快照
+
+image 的clone和 快照并不是一个层次的， 快照基于rados 对象快照， clone 只在image 层，相当于新创建了一个 image, rados 是不区分clone image
+和原image的， 新创建的clone image 的元数据 rbd_header.<id> 中 parent 会记录父子关系
+ clone image 读：
+1.先读clone image, 如果对象不存在（因为一开始创建时只有元数据，并没有实际数据）
+2.从 依赖的snap 读取数据（前面提到的parent 字段可以帮助 先找到父image 再找到snap）
+3。返回数据
+ clone 写 与读差不多，只是当对象不存在时， 先去快照读出不存在的对象然后写到clone image(相当于创建了一个对象)，
+然后再 对clone image 执行写入操作
+
+
+
+
+
+
 
