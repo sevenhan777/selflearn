@@ -91,7 +91,9 @@ def bucket_choose(in_bucket, pgid, trial):
 6                high_item = item
 7                high_draw = draw
 8        return high_item
-其中crush_hash可以简单地看成是一个伪随机的hash函数：它接收3个整数作入参，返回一个固定范围内的随机值。同样的输入下其返回值是确定的，但是任何一个参数的改变都会导致其返回值发生变化。Weight是每个item的权重值（对于OSD来说，weight值与硬盘容量成正比；bucket的weight值即其下children weight值的总和），显然line 4可以使得weight值大的item被选中的几率升高。bucket_choose函数有以下几个特点：
+其中crush_hash可以简单地看成是一个伪随机的hash函数：它接收3个整数作入参，返回一个固定范围内的随机值。同样的输入下其返回值是确定的，
+但是任何一个参数的改变都会导致其返回值发生变化。Weight是每个item的权重值（对于OSD来说，weight值与硬盘容量成正比；
+bucket的weight值即其下children weight值的总和），显然line 4可以使得weight值大的item被选中的几率升高。bucket_choose函数有以下几个特点：
 1. 对于确定的bucket，不同的pgid能返回不同的结果
 2. 对于确定的bucket和pgid，调整trial值可以获得不同的结果
 3. 对于确定的pgid和trial值，如果bucket内item增加或删除或调整weight，返回结果要么不变，要么就变更到这个发生变化的item上
@@ -99,7 +101,9 @@ def bucket_choose(in_bucket, pgid, trial):
 
 Straw 和straw2的区别
 当然straw也存在问题
-	• Straw算法将所有元素按权重逆序排列后逐个计算每个元素的Item_straw，会导致最终选择结果不断取决于每个元素自身权重还与集合当助其他元素强相关。因而会引起不相干的数据迁移。因而Sage Weil进行修正：在计算straw长度时仅使用元素自身的权重。从而得到straw改进算法straw2。
+	• Straw算法将所有元素按权重逆序排列后逐个计算每个元素的Item_straw，会导致最终选择结果不断取决于每个元素自身权重还
+与集合当助其他元素强相关。因而会引起不相干的数据迁移。因而Sage Weil进行修正：在计算straw长度时仅使用元素自身的权重。
+从而得到straw改进算法straw2。
 原Straw算法：
 max_x = -1
 max_item = -1
