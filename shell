@@ -1,0 +1,166 @@
+文件系统：
+ls -l 
+ls -l ?表示任意一个字符  *0或多个字符 [az]a或z [a-z]a到z [!a]非a
+ls -l scrip[a-z]
+touch 文件名
+cp source dest
+mkdir
+rmdir
+cat
+more 
+less 
+tail -n  head -n
+
+进程：
+ps -ef 查看所有进程
+top
+kill -9
+
+磁盘
+df -h 
+du -h
+
+处理数据
+sort -n 按数字大小排序
+sort -M 按月份排序
+
+搜索
+grep pattern 文件
+grep -v t file1  除了t之外的数据
+grep -n t file1 显示数据和行号
+grep -c t file1  统计多少行含有匹配的模式
+grep -e t -e f file1 匹配多个
+grep [iz] file1 简单正则
+
+压缩解压
+压缩 tar -zcvf f.tar.gz
+解压tar -zxvf f.tar.gz
+
+test = `ls`
+echo $test
+
+输出重定向
+ls > file1
+输入重定向
+wc < file1 wc返回文本的行数 词数 字节数
+expr 1+5 数学运算
+
+for i in list； do commands； done
+for i in {1..5}; do echo "第 $i 次循环"; done
+
+awk
+awk 'pattern { action }' file
+常用场景与例子：
+1️⃣ 打印指定列
+awk '{ print $1, $3 }' file.txt  # 打印第1列和第3列
+2️⃣ 指定分隔符（如CSV）
+awk -F, '{ print $2 }' data.csv  # 用逗号作为分隔符，打印第2列
+3️⃣ 条件判断（比如过滤）
+awk '$3 > 100 { print $1, $3 }' file.txt  # 第3列大于100的行
+4️⃣ 配合 shell 使用（管道）
+ps aux | awk '$3 > 50 { print $1, $3 }'   # 找出CPU使用率 > 50% 的进程
+awk 'BEGIN { print "用户 CPU%" } $3 > 50 { print $1, $3 }' file.txt
+awk '{ sum += $2 } END { print "总和是", sum }' file.txt
+
+sed
+1. 替换 s
+🧪 替换每行第一个 hello 为 hi
+sed 's/hello/hi/' example.txt
+输出：
+line1: hi world
+line2: hi foo
+line3: test line
+...
+🧪 替换所有 foo 为 baz
+sed 's/foo/baz/g' example.txt
+输出：
+line2: hello baz
+line4: baz bar
+✅ 2. 删除 d
+🧪 删除第2行
+sed '2d' example.txt
+输出（line2 被删）：
+line1: hello world
+line3: test line
+...
+🧪 删除包含 foo 的行
+sed '/foo/d' example.txt
+输出：
+line1: hello world
+line3: test line
+line5: 
+line6: error happened
+✅ 3. 打印指定行 p（配合 -n）
+🧪 打印第3行
+sed -n '3p' example.txt
+输出：
+line3: test line
+🧪 打印包含 error 的行
+sed -n '/error/p' example.txt
+输出：
+line6: error happened
+✅ 4. 插入/追加行
+🧪 在第3行前插入一行内容
+sed '3i\--- inserted line ---' example.txt
+输出：
+line1: hello world
+line2: hello foo
+--- inserted line ---
+line3: test line
+...
+🧪 在第3行后追加内容
+bash
+Copy
+Edit
+sed '3a\--- appended line ---' example.txt
+输出：
+line3: test line
+--- appended line ---
+line4: foo bar
+...
+✅ 5. 替换整行内容 c
+🧪 替换第2行为 THIS IS NEW
+sed '2c\THIS IS NEW' example.txt
+输出：
+
+line1: hello world
+THIS IS NEW
+line3: test line
+...
+✅ 6. 多条命令
+🧪 删除第1行并替换 test 为 ok
+
+sed -e '1d' -e 's/test/ok/' example.txt
+输出：
+line2: hello foo
+line3: ok line
+...
+✅ 7. 删除空行
+
+sed '/^$/d' example.txt
+输出：
+
+line1: hello world
+...
+line5 被删除
+✅ 8. 在每行末尾加注释
+
+sed 's/$/  # 注释/' example.txt
+输出：
+
+line1: hello world  # 注释
+...
+✅ 9. 替换 tab 为空格
+假设文件里 tab 被替换成了制表符（\t），命令如下：
+
+sed 's/\t/ /g' example.txt
+✅ 10. 注释包含关键词的行（前加 #）
+bash
+Copy
+Edit
+sed '/error/s/^/#/' example.txt
+输出：
+
+# line6: error happened
+
+sed 's/,/ /g' example.txt | awk '{ sum += $2 } END { print "Total:", sum }'
