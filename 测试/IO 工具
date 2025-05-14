@@ -1,0 +1,178 @@
+fio
+ --name=任务名
+含义：给这个测试任务取一个名字，用于区分多个测试任务。
+
+示例：--name=rand_write_test
+
+多个测试可以定义不同名称，结果输出中会分段显示各任务的统计信息。
+
+📁 --filename=文件名
+含义：指定测试所用的文件。可以是实际设备（如 /dev/sda）或普通文件（如 testfile）。
+
+示例：--filename=/tmp/fio_testfile
+
+⚠️ 若测试设备（如 /dev/sdb），务必小心，可能清空数据。
+
+🔄 --rw=读写方式
+含义：指定 I/O 类型，即模拟什么样的访问模式。
+
+值	含义
+read	顺序读
+write	顺序写
+randread	随机读
+randwrite	随机写
+randrw	随机读写混合，默认50:50
+rw	顺序读写混合
+
+示例：--rw=randread
+
+可配合 --rwmixread=70 调整混合比例（如读70%，写30%）
+
+📦 --size=大小
+含义：每个线程操作的文件大小。
+
+示例：--size=1G 表示测试每个 job 使用 1GB 数据。
+
+多线程时实际总大小为 numjobs × size。
+
+📏 --bs=块大小（block size）
+含义：每次 I/O 操作的数据量（单位可以是 k/M/G）。
+
+示例：
+
+--bs=4k：每次读/写 4KB（适合模拟数据库）
+
+--bs=1M：每次读/写 1MB（适合顺序写入）
+
+🧵 --numjobs=线程数
+含义：并发运行的线程数（jobs 数量）。
+
+示例：--numjobs=4 表示创建 4 个线程并发执行 I/O。
+
+适合测试多线程负载对性能的影响。
+
+🚦 --iodepth=队列深度
+含义：每个 job 的并发 I/O 请求数量，仅适用于异步 I/O 模式（如 libaio）。
+
+示例：--iodepth=8 表示最多有 8 个并发请求挂起。
+
+较高的值适合模拟高并发场景。
+
+⏱️ --runtime=测试持续时间
+含义：设置运行时间，避免测满所有 size。
+
+示例：--runtime=30s
+
+如果未设置，则任务运行到 size 为止；设置后会在时间到后中止。
+
+🧠 --ioengine=I/O 引擎
+含义：指定底层 I/O 的方式，不同引擎影响性能与适用性。
+
+引擎	含义和说明
+sync	同步 I/O，默认方式
+libaio	Linux 异步 I/O，引荐用于性能测试
+mmap	使用内存映射文件方式
+
+
+vdbench
+# 1. 存储设备配置
+sd=sd1,lun=/dev/sda,size=10G,data=random
+sd=sd2,lun=/dev/sdb,size=10G,data=default
+sd=sd3,lun=/dev/sdc,size=5G,data=checksum
+
+# 2. 工作负载配置（wd）
+# wd1：顺序读取，4KB 块大小，100% 读取
+wd=wd1,sd=sd1,xfersize=4k,access=sequential,rdpct=100
+
+# wd2：随机读写，64KB 块大小，50% 读，50% 写
+wd=wd2,sd=sd2,xfersize=64k,access=random,rdpct=50
+
+# wd3：独占访问，1MB 块大小，100% 写入
+wd=wd3,sd=sd3,xfersize=1M,access=unique,rdpct=0
+
+# 3. 数据类型配置
+# sd1 使用随机数据填充
+sd=sd1,lun=/dev/sda,size=10G,data=random
+
+# sd2 使用默认填充（0填充）
+sd=sd2,lun=/dev/sdb,size=10G,data=default
+
+# sd3 使用校验和填充
+sd=sd3,lun=/dev/sdc,size=5G,data=checksum
+
+# 4. 线程与并发配置
+# 设置多个线程，多个存储设备
+rd=rd1,wd=wd1,threads=4,iosize=4k
+rd=rd2,wd=wd2,threads=8,iosize=64k
+rd=rd3,wd=wd3,threads=2,iosize=1M
+
+# 5. I/O 模式配置
+# 顺序读写配置
+wd=wd1,sd=sd1,xfersize=4k,access=sequential,rdpct=100
+wd=wd2,sd=sd2,xfersize=64k,access=sequential,rdpct=0
+
+# 随机读写配置
+wd=wd3,sd=sd3,xfersize=128k,access=random,rdpct=50
+
+# 6. 读写百分比
+# 配置 60% 读，40% 写
+wd=wd4,sd=sd1,xfersize=4k,access=random,rdpct=60
+
+# 配置 90% 读，10% 写
+wd=wd5,sd=sd2,xfersize=8k,access=random,rdpct=90
+
+# 7. 测试时间配置
+# 设置测试时间为 1 小时
+run=run1,wd=wd1,sd=sd1,iorate=1000,elapsed=1h
+
+# 8. 访问块的配置
+# 设置独占块访问
+wd=wd6,sd=sd1,xfersize=256k,access=unique,rdpct=0
+
+# 9. 结果输出配置
+# 设置输出文件和结果记录
+out=vdbench_output,outputdir=/tmp/vdbench/results
+说明：
+存储设备配置 (sd)
+
+每个存储设备配置使用了不同的填充方式，分别是 random、default 和 checksum。
+
+示例中使用了 /dev/sda, /dev/sdb, /dev/sdc 作为设备，并指定了存储设备的大小。
+
+工作负载配置 (wd)
+
+工作负载配置展示了顺序、随机和独占访问的组合，且可以为每个工作负载设置不同的块大小 (xfersize) 和读写百分比 (rdpct)。
+
+顺序访问、随机访问和独占访问等 I/O 模式被用来模拟不同的负载类型。
+
+数据类型配置 (data)
+
+使用 random、default 和 checksum 来定义数据填充类型，用于模拟不同的数据填充方式。
+
+线程与并发配置 (rd)
+
+配置了多个读线程 (threads)，并设置了每个线程的 I/O 操作大小 (iosize)。
+
+线程数可以根据测试需求调整，支持多线程并发执行。
+
+I/O 模式配置 (access)
+
+定义了顺序、随机和独占 I/O 模式。
+
+access=sequential 适用于顺序读写，access=random 适用于随机读写，access=unique 适用于每次 I/O 操作使用不同的块地址。
+
+读写百分比 (rdpct)
+
+设置了每个工作负载的读取和写入比例，控制了 I/O 操作的比重。
+
+测试时间配置 (run)
+
+设置了测试运行的时间，这里示例中的 elapsed=1h 表示测试运行 1 小时。
+
+访问块的配置
+
+使用 access=unique 来模拟独占访问模式，适合高并发的场景。
+
+结果输出配置 (out)
+
+配置了测试结果的输出目录，以便保存运行过程中生成的日志和报告文件。
