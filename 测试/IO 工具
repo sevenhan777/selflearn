@@ -176,3 +176,4 @@ access=sequential 适用于顺序读写，access=random 适用于随机读写，
 结果输出配置 (out)
 
 配置了测试结果的输出目录，以便保存运行过程中生成的日志和报告文件。
+https://www.cnblogs.com/itsfei/p/17477492.html vdbench 测试文件系统
