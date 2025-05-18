@@ -1,121 +1,218 @@
-一、什么是正则表达式？
-正则表达式（Regular Expression, 简称 regex）是一种用来描述文本规则的语法，用于查找、匹配、替换、提取字符串中的特定内容。
+✅ 一、基础匹配符号 + 示例
+正则符号	含义	示例
+.	任意字符（除换行）	re.findall(r".", "abc") → ['a', 'b', 'c']
+^	开头	re.match(r"^abc", "abcdef") → ✅
+$	结尾	re.search(r"def$", "abcdef") → ✅
+*	0次或多次	re.findall(r"ab*", "abbb ac") → ['abbb', 'a']
++	1次或多次	re.findall(r"ab+", "abbb ac") → ['abbb']
+?	0或1次	re.findall(r"ab?", "abbb ac") → ['ab', 'a']
+{n}	恰好 n 次	re.findall(r"\d{3}", "123456") → ['123', '456']
+{n,}	至少 n 次	re.findall(r"\d{2,}", "1234") → ['1234']
+{n,m}	n 到 m 次	re.findall(r"\d{2,3}", "12345") → ['123', '45']
+[]	字符集合	re.findall(r"[aeiou]", "hello") → ['e', 'o']
+[^]	非集合字符	re.findall(r"[^aeiou]", "hello") → ['h', 'l', 'l']
 
-在 Python 中，使用内置模块 re 来处理正则：
+✅ 二、快捷字符 + 示例
+正则符号	含义	示例
+\d	数字（[0-9]）	re.findall(r"\d+", "a123b") → ['123']
+\D	非数字	re.findall(r"\D+", "a123b") → ['a', 'b']
+\w	单词字符	re.findall(r"\w+", "a_123!") → ['a_123']
+\W	非单词字符	re.findall(r"\W+", "a_123!") → ['!']
+\s	空白字符	re.findall(r"\s", "a b\tc") → [' ', '\t']
+\S	非空白	re.findall(r"\S", "a b") → ['a', 'b']
+\b	单词边界	re.findall(r"\bhi\b", "hi there") → ['hi']
+
+✅ 三、分组与或 | 示例
+表达式	含义	示例
+(abc)	捕获组	re.findall(r"(abc)", "abcabc") → ['abc', 'abc']
+(?:abc)	非捕获组	不记录匹配内容，仅匹配逻辑
+`a	b`	或
+
+✅ 四、常用函数 + 示例
+1. re.match()
+python
+Copy
+Edit
+import re
+re.match(r"\d+", "123abc").group()  # '123'
+2. re.search()
+python
+Copy
+Edit
+re.search(r"\d+", "abc456def").group()  # '456'
+3. re.findall()
+python
+Copy
+Edit
+re.findall(r"[a-z]+", "abc123XYZ")  # ['abc']
+4. re.sub()
+python
+Copy
+Edit
+re.sub(r"\d+", "***", "a12b34")  # 'a***b***'
+5. re.finditer()
+python
+Copy
+Edit
+for m in re.finditer(r"\d+", "a12b34"):
+    print(m.group())  # 12, 34
+6. re.compile()
+python
+Copy
+Edit
+pattern = re.compile(r"\w+")
+pattern.findall("abc 123")  # ['abc', '123']
+✅ 五、贪婪 vs 非贪婪 + 示例
+python
+Copy
+Edit
+text = "<h1>Title</h1><h1>Sub</h1>"
+
+# 贪婪匹配
+re.findall(r"<h1>.*</h1>", text)  
+# → ['<h1>Title</h1><h1>Sub</h1>']
+
+# 非贪婪匹配
+re.findall(r"<h1>.*?</h1>", text) 
+# → ['<h1>Title</h1>', '<h1>Sub</h1>']
+✅ 六、flags 示例（忽略大小写、多行等）
+python
+Copy
+Edit
+text = "Hello\nworld"
+
+# 忽略大小写
+re.findall(r"hello", text, flags=re.I)  # ['Hello']
+
+# 多行匹配 ^ 和 $
+re.findall(r"^w.*", text, flags=re.M)  # ['world']
+✅ 七、应用案例整合
+✔ 邮箱匹配
+python
+Copy
+Edit
+re.findall(r"\w+@\w+\.\w+", "Email me: a@b.com")  
+# → ['a@b.com']
+✔ 手机号
+python
+Copy
+Edit
+re.findall(r"1[3-9]\d{9}", "My phone: 13812345678")  
+# → ['13812345678']
+✔ HTML标签内容
+python
+Copy
+Edit
+re.findall(r"<title>(.*?)</title>", "<title>Home</title>")  
+# → ['Home']
+
+总体对比表
+函数	作用	匹配范围	返回值类型	适用场景
+re.match()	从字符串开头匹配	仅匹配开头	Match 对象 / None	检查字符串是否以某模式开头
+re.search()	从任意位置查找第一个匹配	全文查找	Match 对象 / None	找到某模式是否存在
+re.findall()	查找所有匹配项	全文查找	列表（只含字符串）	提取所有匹配值
+re.sub()	替换所有匹配项	全文替换	字符串（替换后的结果）	文本清洗、脱敏等操作
+
+✅ 详细例子说明
+设有字符串：
+
+python
+Copy
+Edit
+text = "hello 123 world 456"
+pattern = r"\d+"
+1. re.match(pattern, string)
+只能匹配开头，否则返回 None
 
 python
 Copy
 Edit
 import re
-📘 二、基础语法规则
-符号	含义
-.	匹配除换行符以外的任意字符
-^	匹配字符串开头
-$	匹配字符串结尾
-*	匹配前一个字符 0 次或多次
-+	匹配前一个字符 1 次或多次
-?	匹配前一个字符 0 次或 1 次（非贪婪）
-{n}	匹配前一个字符 n 次
-{n,}	匹配前一个字符至少 n 次
-{n,m}	匹配前一个字符 n 到 m 次
-[...]	匹配括号内任意字符
-[^...]	不匹配括号内的字符
-\	转义字符，如 \d
-`	`
-(...)	分组，捕获子表达式
-(?:...)	非捕获分组（不保存结果）
 
-🔍 三、常用元字符（快捷写法）
-表达式	含义
-\d	匹配任意数字（等价于 [0-9]）
-\D	匹配非数字
-\w	匹配单词字符（字母数字下划线）
-\W	匹配非单词字符
-\s	匹配空白符（空格、换行、Tab）
-\S	匹配非空白符
-\b	匹配单词边界
-\B	非单词边界
+result = re.match(pattern, text)
+print(result)  # None（因为 text 不以数字开头）
 
-⚙️ 四、常用函数与用法
-1. re.match(pattern, string)
-从字符串起始位置匹配
-
-python
-Copy
-Edit
-re.match(r"\d+", "123abc")  # ✅ 匹配
-re.match(r"\d+", "abc123")  # ❌ 不匹配
+# 正确示例（数字开头）：
+re.match(r"\d+", "123abc").group()
+# → '123'
 2. re.search(pattern, string)
-搜索整个字符串，返回第一个匹配项
+查找第一个匹配项（全文范围）
 
 python
 Copy
 Edit
-re.search(r"\d+", "abc123xyz")  # ✅ 匹配 123
+result = re.search(pattern, text)
+print(result.group())  
+# → '123'（找到了第一个数字串）
 3. re.findall(pattern, string)
-返回所有匹配项的列表
+返回所有匹配结果，以列表形式给出
 
 python
 Copy
 Edit
-re.findall(r"\d+", "a11b22c33")  # ['11', '22', '33']
-4. re.finditer(pattern, string)
-返回可迭代的匹配对象，每个是 re.Match 实例
+matches = re.findall(pattern, text)
+print(matches)
+# → ['123', '456']
+4. re.sub(pattern, repl, string)
+将匹配项替换为指定内容
 
-python
-Copy
-Edit
-for m in re.finditer(r"\d+", "a11b22"):
-    print(m.group())  # 11, 22
-5. re.sub(pattern, repl, string)
-替换匹配内容
+new_text = re.sub(pattern, "###", text)
+print(new_text)
+# → 'hello ### world ###'
+import re
+def double(match):
+    num = int(match.group())
+    return str(num * 2)
+text = "Price: 10, Discount: 5"
+result = re.sub(r"\d+", double, text)
+print(result)
+# → "Price: 20, Discount: 10"
 
-python
-Copy
-Edit
-re.sub(r"\d+", "-", "a11b22c33")  # a-b-c-
-6. 编译模式 re.compile()
-提高效率，适用于重复使用同一规则的情况
+import re
+text = "Price: 10, Discount: 5"
+result = re.sub(r"\d+", lambda m: str(int(m.group()) * 2), text)
+print(result)
+✅ 总结一句话理解
+match()：开头必须匹配，像“门口查岗”；
 
-python
-Copy
-Edit
-pattern = re.compile(r"\w+")
-pattern.findall("Hello 123")  # ['Hello', '123']
-🎯 五、常用案例
-邮箱匹配
-python
-Copy
-Edit
-re.match(r"\w+@\w+\.\w+", "test@example.com")
-手机号匹配（以1开头、11位）
-python
-Copy
-Edit
-re.match(r"1[3-9]\d{9}", "13912345678")
-提取 HTML 标签内容
-python
-Copy
-Edit
-re.findall(r"<h1>(.*?)</h1>", "<h1>Hello</h1><h1>World</h1>")
-⚠️ 六、贪婪 vs 非贪婪匹配
-类型	说明
-贪婪	默认行为，尽可能多地匹配，例如 .*
-非贪婪	在 *、+、? 后加 ?，尽可能少匹配，例如 .*?
+search()：扫一遍，看是否存在匹配；
 
-python
-Copy
-Edit
-re.findall(r"<h1>.*</h1>", "<h1>One</h1><h1>Two</h1>")   # 贪婪，结果 ['<h1>One</h1><h1>Two</h1>']
-re.findall(r"<h1>.*?</h1>", "<h1>One</h1><h1>Two</h1>")  # 非贪婪，结果 ['<h1>One</h1>', '<h1>Two</h1>']
-🧠 七、常用标志位（flags）
-标志	含义
-re.I	忽略大小写
-re.M	多行模式（^ $ 匹配每行）
-re.S	点号 . 匹配换行符
-re.X	忽略空白（更易读写复杂模式）
+findall()：把所有符合条件的内容都抓出来；
 
+sub()：把所有匹配的东西换掉（替换操作）。
+》》》》》》》》》》》》》》》》》》》》》》》》》》》》》
+一、什么是 group？
+在正则表达式中，使用 () 可以把表达式的一部分括起来形成一个 捕获组（group）。
+Python 中使用 .group() 方法可以提取这些组的内容。
+
+🧠 二、group() 的基本用法
 python
 Copy
 Edit
-re.findall(r"hello", "HELLO", flags=re.I)  # ['HELLO']
+import re
+
+text = "Name: Alice, Age: 25"
+pattern = r"Name: (\w+), Age: (\d+)"
+
+match = re.search(pattern, text)
+print(match.group(0))  # 整体匹配 → Name: Alice, Age: 25
+print(match.group(1))  # 第1组 → Alice
+print(match.group(2))  # 第2组 → 25
+✨ .group(n) 说明：
+方法	含义
+group(0)	返回整个匹配结果（默认）
+group(1)	返回第1组的内容
+group(2)	返回第2组的内容
+...	多组继续向后类推
+
+✅ 三、匹配多个组 + 提取多个结果
+📌 示例：提取多个 (姓名, 电话) 组合
+
+import re
+
+text = "Tom: 13800001234, Jerry: 13912345678"
+pattern = r"(\w+): (\d+)"
+
+matches = re.findall(pattern, text)
+print(matches)
+# → [('Tom', '13800001234'), ('Jerry', '13912345678')]
