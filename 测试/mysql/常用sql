@@ -1,1 +1,239 @@
+一、库和表操作
+1. 创建数据库
+sql
+Copy
+Edit
+CREATE DATABASE mydb;
+2. 使用数据库
+sql
+Copy
+Edit
+USE mydb;
+3. 创建表
+sql
+Copy
+Edit
+CREATE TABLE students (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  name VARCHAR(50),
+  age INT,
+  gender ENUM('M', 'F'),
+  score FLOAT
+);
+4. 查看表结构
+sql
+Copy
+Edit
+DESC students;
+5. 删除表/库
+sql
+Copy
+Edit
+DROP TABLE students;
+DROP DATABASE mydb;
+✅ 二、数据操作（DML）
+1. 插入数据
+sql
+Copy
+Edit
+INSERT INTO students (name, age, gender, score)
+VALUES ('Alice', 20, 'F', 88.5);
+2. 查询数据（SELECT）
+sql
+Copy
+Edit
+SELECT * FROM students;
+SELECT name, age FROM students WHERE age > 18;
+3. 更新数据
+sql
+Copy
+Edit
+UPDATE students SET score = 95 WHERE name = 'Alice';
+4. 删除数据
+sql
+Copy
+Edit
+DELETE FROM students WHERE id = 1;
+✅ 三、查询语法细节
+1. 条件查询 WHERE
+sql
+Copy
+Edit
+SELECT * FROM students WHERE age >= 18 AND gender = 'F';
+2. 模糊匹配 LIKE
+sql
+Copy
+Edit
+SELECT * FROM students WHERE name LIKE 'A%';   -- 以 A 开头
+SELECT * FROM students WHERE name LIKE '%e';   -- 以 e 结尾
+3. 范围 IN / BETWEEN
+sql
+Copy
+Edit
+SELECT * FROM students WHERE age BETWEEN 18 AND 22;
+SELECT * FROM students WHERE name IN ('Alice', 'Bob');
+4. 空值判断
+sql
+Copy
+Edit
+SELECT * FROM students WHERE score IS NULL;
+✅ 四、排序和分页
+1. 排序 ORDER BY
+sql
+Copy
+Edit
+SELECT * FROM students ORDER BY score DESC, age ASC;
+2. 分页 LIMIT
+sql
+Copy
+Edit
+SELECT * FROM students LIMIT 0, 5;  -- 第1页（从第0行开始取5条）
+SELECT * FROM students LIMIT 5, 5;  -- 第2页
+✅ 五、分组 GROUP BY + 聚合函数
+sql
+Copy
+Edit
+SELECT gender, COUNT(*) AS total, AVG(score) AS avg_score
+FROM students
+GROUP BY gender
+HAVING avg_score > 80;
+聚合函数包括：
+
+COUNT()：计数
+
+SUM()：求和
+
+AVG()：平均值
+
+MAX()：最大值
+
+MIN()：最小值
+
+✅ 六、表连接 JOIN
+1. 内连接（最常用）
+sql
+Copy
+Edit
+SELECT s.name, c.class_name
+FROM students s
+JOIN classes c ON s.class_id = c.id;
+2. 左连接（包含左表所有数据）
+sql
+Copy
+Edit
+SELECT s.name, c.class_name
+FROM students s
+LEFT JOIN classes c ON s.class_id = c.id;
+✅ 七、子查询
+查询分数高于平均值的学生
+sql
+Copy
+Edit
+SELECT * FROM students
+WHERE score > (SELECT AVG(score) FROM students);
+✅ 八、视图 VIEW（逻辑表）
+sql
+Copy
+Edit
+CREATE VIEW high_score_students AS
+SELECT name, score FROM students WHERE score > 90;
+
+SELECT * FROM high_score_students;
+✅ 九、索引（提高查询效率）
+sql
+Copy
+Edit
+CREATE INDEX idx_age ON students(age);
+✅ 十、常见数据类型
+类型	用法说明
+INT	整数
+FLOAT	浮点数
+VARCHAR(n)	可变长度字符串
+TEXT	大段文字
+DATE	日期
+DATETIME	日期时间
+ENUM	枚举，如 ENUM('M','F')
+
+📌 示例小练习（可选）
+选出成绩在 80 分以上的男生，按分数降序排列，取前 3 个：
+
+sql
+Copy
+Edit
+SELECT name, score
+FROM students
+WHERE gender = 'M' AND score > 80
+ORDER BY score DESC
+LIMIT 3;
+
+常用 ALTER TABLE 操作汇总 + 示例
+1️⃣ 添加字段（列）
+sql
+Copy
+Edit
+ALTER TABLE students
+ADD COLUMN phone VARCHAR(20);
+👉 在表中新增 phone 列
+
+2️⃣ 修改字段类型
+sql
+Copy
+Edit
+ALTER TABLE students
+MODIFY COLUMN score DECIMAL(5,2);
+👉 将 score 字段从原来的类型改成 DECIMAL(5,2)，用于更精确的分数表示（如 98.75）
+
+3️⃣ 修改字段名称和类型
+sql
+Copy
+Edit
+ALTER TABLE students
+CHANGE COLUMN score final_score INT;
+👉 把 score 改名为 final_score，并同时改为 INT 类型
+
+4️⃣ 删除字段
+sql
+Copy
+Edit
+ALTER TABLE students
+DROP COLUMN phone;
+👉 删除 phone 这一列
+
+5️⃣ 设置主键
+sql
+Copy
+Edit
+ALTER TABLE students
+ADD PRIMARY KEY (id);
+6️⃣ 添加唯一约束（UNIQUE）
+sql
+Copy
+Edit
+ALTER TABLE students
+ADD UNIQUE (name);
+7️⃣ 添加外键
+sql
+Copy
+Edit
+ALTER TABLE students
+ADD CONSTRAINT fk_class
+FOREIGN KEY (class_id) REFERENCES classes(id);
+8️⃣ 删除主键 / 外键 / 索引
+sql
+Copy
+Edit
+ALTER TABLE students DROP PRIMARY KEY;
+ALTER TABLE students DROP FOREIGN KEY fk_class;
+ALTER TABLE students DROP INDEX idx_age;
+9️⃣ 添加索引
+sql
+Copy
+Edit
+ALTER TABLE students
+ADD INDEX idx_name (name);
+🔟 重命名表名
+sql
+Copy
+Edit
+RENAME TABLE students TO student_info;
 
