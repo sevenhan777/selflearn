@@ -1,0 +1,38 @@
+什么是 CGroup？
+CGroup（Control Group）是 Linux 提供的一种机制，用来限制、记录、隔离一组进程使用的系统资源。
+CGroup 允许你对进程“分组”，然后对这些组施加资源管理，比如 CPU 限制、内存限制、I/O 限速等。
+🔧 CGroup 能干什么？（核心功能）
+功能	说明
+资源限制	限制一个进程组使用的 CPU、内存、磁盘 IO、网络带宽等
+资源隔离	防止某个进程占用过多资源，影响其他进程
+资源统计	监控和收集进程组使用资源的情况
+优先级控制	控制哪个组优先使用资源（比如 CPU 权重）
+进程分组	将进程“打包”管理，便于统一控制
+🔍 举个场景例子
+你有两个服务：A 和 B
+服务 A：核心服务，不能让它内存爆掉
+服务 B：测试脚本，跑的时候不能占满 CPU
+你可以这么做：
+把 A 放进一个 CGroup，限制内存最多用 1GB
+把 B 放进另一个 CGroup，只给它 20% 的 CPU
+这样，哪怕 B 是个疯狂跑循环的脚本，也不会影响 A 的性能。
+🐳 容器技术离不开 CGroup
+像 Docker、Kubernetes、LXC 这些容器技术，底层就是用 CGroup + Namespace 实现的资源隔离：
+Namespace：隔离“谁看到什么”（进程、网络、文件系统等）
+CGroup：隔离“谁用多少”（CPU、内存、磁盘等）
+🧱 CGroup 结构概览
+/sys/fs/cgroup/
+├── cpu/
+├── memory/
+├── blkio/
+├── pids/
+├── devices/
+每一个子系统（controller）都对应一个资源类型，比如：
+cpu 限制 CPU 使用
+memory 限制内存
+blkio 限制磁盘 IO
+你可以通过修改这些目录下的文件，动态调整限制。
+💡 CGroup v1 vs v2
+CGroup v1：资源是分多个子系统（controller）独立配置的
+CGroup v2：统一管理所有资源限制，更易用，Kubernetes 逐渐支持 v2
+你可以通过 mount | grep cgroup 看当前系统使用的是哪一代。
