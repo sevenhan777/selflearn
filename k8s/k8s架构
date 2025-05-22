@@ -103,3 +103,70 @@ Volume	数据持久化
  [Kube Proxy 设置转发]
        ↓
  [Pod 运行，状态上报 API Server]
+
+pod
+kubectl run xxx --image=xxxx
+kubectl get pod xxx -owide 
+kubectl describe pod xxx  可以查看 event，来看创建pod 过程中有哪些问题
+1.分配node
+2.拉去镜像
+3.创建镜像
+4.开启镜像
+kubectl delete pod xxx
+kubectl exec -it xxx  进入运行中的容器
+yaml
+容器一： 
+labels 用于找到一组容器
+name:找到一个容器
+容器镜像
+容器端口号
+容器二：
+。。。。。。拉取多个容器
+kubectl apply -f xx.yaml
+
+deployment：
+多副本 自愈 扩容
+kubectl create deployment xxx --image=xxx
+kubectl get deploy
+kubectl get pod -w  监听摸个pod的行为
+
+kubectl create deployment xxx --image=xxx --replicas=3 创建三个副本
+yaml
+replicas 3
+
+kubectl scale --replicas =5 deployment xxx 扩缩容
+
+升级和回滚
+kubectl set image deplyment xxx tomcat=tomcat:newversion --record
+kubectl rollout undo --to-revision=xx
+
+service:
+为一组pod 提供外部网络服务，和负载均衡
+kubectl expose deployment my-tomcat --name=tomcat --port=8080 --type=NodePort
+
+pod 有自己的ip:port使用一个网段
+service 也有自己的IP:port使用另一个网段
+node 也有自己的IP：port  
+内部可以通过 service的ip访问，外部可以通过node的ip:port 访问
+
+volume:
+yaml
+volumes:
+mount 点
+share
+
+pvc
+对nfs 再分配
+kubectl apply -f xx.yaml
+用户可以去申请这部分空间
+
+ingress
+集群通过 ingress 将外部网络流量打到不同的service, 也可以实现负载均衡，
+
+k8s 网络模型
+同一个pod中不同容器之间通信
+多个pod通信
+pod 和service通信
+集群外部与service 通信
+
+
