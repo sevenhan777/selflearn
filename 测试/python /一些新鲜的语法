@@ -1,0 +1,39 @@
+变量、函数名	小写字母 + 下划线	total_count, get_name()
+类名	大驼峰（PascalCase）	UserManager, FileHandler
+常量	全大写 + 下划线	MAX_RETRY, TIMEOUT
+私有变量/方法	前缀单下划线	_internal_method()
+
+》》》》》》》》》》》》》》》》
+捕获异常
+try:
+    num = int(input())
+    res = 10 / num
+except ValueError:
+    print("please input correct value")
+except ZeroDivisionError:
+    print("捕获第二个错误")
+except Exception as e:
+    print(f"捕获未知错误{e}")
+else:
+    print("没有异常会执行的代码")
+finally:
+    print("任何情况下都会执行")
+
+主动抛出异常：
+def input_pass():
+    password = input()
+    if len(password) > 8:
+        print(password)
+    else:
+        #创建异常对象
+        ex = Exception('异常描述')
+        #主动抛出异常
+        raise ex
+
+
+try:
+    input_pass()
+except Exception as e:
+    print(f"捕获到异常{e}")
+
+input_pass()
