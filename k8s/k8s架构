@@ -1,0 +1,105 @@
+ 一、Kubernetes 架构总览
+Kubernetes 是一个典型的 主从（Master-Node）架构，包括两个主要部分：
+
++----------------------+       +----------------------+
+|    Master Node       |<----->|     Worker Node      |
++----------------------+       +----------------------+
+| API Server           |       | Kubelet              |
+| Scheduler            |       | Kube Proxy           |
+| Controller Manager   |       | Container Runtime    |
+| etcd (数据存储)     |       | Pods (App 容器)     |
++----------------------+       +----------------------+
+🧠 二、核心组件详解
+🧭 控制平面（Control Plane）组件：
+组件	作用
+API Server	所有操作的入口，提供 HTTP/REST 接口，所有组件与其通信
+etcd	分布式键值数据库，存储集群的所有状态（如 Pod、Service 配置）
+Scheduler	负责将 Pod 分配到合适的 Node 上
+Controller Manager	管理各种控制器（如 Deployment、ReplicaSet）来确保期望状态
+
+⚙️ Node 节点组件（Worker Node）：
+组件	作用
+Kubelet	每个节点的 Agent，负责 Pod 的创建、状态上报等
+Kube Proxy	处理网络转发、Service 的负载均衡等
+Container Runtime	容器运行时，比如 Docker、containerd，真正运行容器
+
+🧩 三、Kubernetes 工作流程（Pod 调度流程）
+以下是用户提交一个 Pod 后，K8s 如何处理的完整流程：
+
+✅ kubectl 发请求
+
+用户执行：kubectl apply -f pod.yaml
+
+请求被发送到 API Server
+
+📥 API Server 校验 + 写入 etcd
+
+校验请求合法性，写入 etcd，即集群状态更新
+
+📅 Scheduler 发现未调度的 Pod
+
+Scheduler 监听到新的未绑定 Pod
+
+选择一个合适的 Node（根据资源、亲和性等）
+
+📤 API Server 更新调度结果
+
+Scheduler 将 Pod 和 Node 的绑定关系回写到 etcd
+
+🧑‍🔧 Kubelet 执行 Pod 创建
+
+对应 Node 上的 Kubelet 监听到新任务
+
+Kubelet 通过 Container Runtime 创建容器
+
+🛰 Kube Proxy 设置网络
+
+保证 Pod 能被访问，更新 iptables/ebtables 做转发
+
+🟢 Pod 运行中 + 状态上报
+
+Kubelet 定期向 API Server 报告 Pod 状态
+
+API Server 统一更新状态到 etcd
+
+🕸 四、Kubernetes 网络模型（简要）
+每个 Pod 有一个独立 IP
+
+所有 Pod 互通（不需要 NAT）
+
+Service 通过 ClusterIP/NodePort/LoadBalancer 暴露应用
+
+Kube Proxy 实现负载均衡和转发
+
+📈 五、集群伸缩/自愈工作原理
+如果 Pod 崩溃，Controller Manager 会重新创建
+
+Deployment 控制器会确保副本数恒定
+
+HPA（Horizontal Pod Autoscaler）可根据 CPU 自动扩容 Pod
+
+🧰 六、核心资源（对象）简述
+资源	作用
+Pod	最小部署单元
+Service	网络访问抽象，负载均衡
+Deployment	声明式部署，控制副本
+ConfigMap / Secret	配置管理
+Namespace	多租户隔离
+Volume	数据持久化
+
+✅ 七、总结：Kubernetes 工作流程图
+[User -> kubectl]
+       ↓
+[API Server] ⇄ [etcd]
+       ↓
+ [Scheduler]
+       ↓
+ [API Server 更新绑定]
+       ↓
+ [Kubelet 监听执行]
+       ↓
+ [Container Runtime 启动容器]
+       ↓
+ [Kube Proxy 设置转发]
+       ↓
+ [Pod 运行，状态上报 API Server]
