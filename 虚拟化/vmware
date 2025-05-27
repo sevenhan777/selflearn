@@ -1,1 +1,19 @@
+vaai 怎么理解
+功能类别	VMware VAAI	Hyper-V ODX
+复制卸载	✅ XCOPY	✅ ODX
+清零卸载	✅ WRITE SAME	✅ ODX Zeroing
+空间释放	✅ UNMAP	✅ TRIM/UNMAP
+锁管理卸载	✅ ATS（Atomic Test and Set）	❌ ODX 不支持类似 ATS 的锁功能
 
+ATS 对应的场景是多esxi server 访问共享存储
+ESXi 主机 A 访问 VMFS 文件系统
+    ↓
+准备修改某元数据 block（例如分配一个新的 VMDK）
+    ↓
+向存储阵列发送 SCSI ATS 指令（Test-and-Set）
+    ↓
+存储阵列检查目标 block 当前内容是否与期望一致 （其他主机修改了值）
+    ↓
+如果一致，更新 block 并返回“成功”；否则返回“失败”
+
+odx 和 vaai for nfs 都不支持ATS，原因在于 hyperv 使用了文件级别的锁，nfs也一样
